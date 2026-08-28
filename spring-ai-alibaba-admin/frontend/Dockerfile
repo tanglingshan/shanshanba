@@ -9,8 +9,8 @@ COPY packages/main/package.json ./packages/main/
 COPY packages/spark-flow/package.json ./packages/spark-flow/
 COPY packages/spark-i18n/package.json ./packages/spark-i18n/
 
-# Install dependencies
-RUN npm install
+# Install dependencies (use legacy-peer-deps to resolve conflicts)
+RUN npm install --legacy-peer-deps || npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
@@ -27,8 +27,8 @@ FROM nginx:alpine
 # Copy built files from builder stage
 COPY --from=builder /app/packages/main/dist /usr/share/nginx/html
 
-# Copy nginx configuration (optional, if you have custom nginx config)
-# COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Expose port 80
 EXPOSE 80
