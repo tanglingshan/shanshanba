@@ -5,4 +5,7 @@ export default defineConfig({
   esm: {
     output: 'dist',
   },
+  // Skip declaration generation due to type definition conflicts
+  extraBabelPlugins: [],
+  prebundle: {},
 });
