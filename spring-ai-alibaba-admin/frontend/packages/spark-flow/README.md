@@ -42,16 +42,16 @@ spark-flow/
 ## How to Develop
 ### Quick Start
 ```shell
-npm run re-install && cd packages/spark-flow && npm start
+pnpm run re-install && cd packages/spark-flow && pnpm start
 ```
 
-+ **Install Dependencies** Execute `npm run re-install` in the root directory
-+ **Run** cd `packages/spark-flow` and execute `npm start`
++ **Install Dependencies** Execute `pnpm run re-install` in the root directory
++ **Run** cd `packages/spark-flow` and execute `pnpm start`
 
 ### Development
 > [!NOTE]  
 > **Note:** Prerequisite is that you have completed the **Install Dependencies** operation from Quick Start
 
-+ After development, execute `npm run fresh:flow` in the root directory to quickly clear the dependencies of the main package `packages/main`;
-+ Enter the main package `packages/main` and execute `npm start`
++ After development, execute `pnpm run fresh:flow` in the root directory to quickly clear the dependencies of the main package `packages/main`;
++ Enter the main package `packages/main` and execute `pnpm start`
 + Perform testing & verification;

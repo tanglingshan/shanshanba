@@ -50,21 +50,28 @@ frontend/
 
 ## ⚡ 快速开始
 
-### 通过源码运行
+### 环境要求
 
 在启动 Web 前端服务之前，请确保以下环境已准备就绪。
 - [Node.js](https://nodejs.org) >= v20
+- [pnpm](https://pnpm.io) >= 9.0（包管理器）
 
-首先，在根目录下安装依赖项：
-
+**📦 安装 pnpm：**
 ```bash
-npm install rimraf copyfiles --save-dev
+npm install -g pnpm
+# 或者
+corepack enable
+corepack prepare pnpm@latest --activate
 ```
 
-然后安装所有项目依赖：
+> **⚠️ 重要提示：** 本项目使用 **pnpm** 作为包管理器，请勿使用 npm 或 yarn，以避免依赖冲突。
+
+### 通过源码运行
+
+首先，安装所有项目依赖：
 
 ```bash
-npm run re-install
+pnpm install
 ```
 
 然后，配置环境变量。在当前目录中创建一个名为`.env`的文件，并从`.env.example`复制内容。根据您的需求修改这些环境变量的值：
@@ -98,8 +105,8 @@ DEFAULT_PASSWORD=123456
 最后，运行开发服务器：
 
 ```bash
-cd packages/main
-npm run dev
+cd ../..
+pnpm run dev
 ```
 
 用浏览器打开 [http://localhost:8000](http://localhost:8000) 查看结果。
@@ -110,7 +117,7 @@ npm run dev
 
 ```bash
 # 如果后端是 java
-npm run build:subtree:java
+pnpm run build:subtree:java
 ```
 
 命令完成以后，会生成 `./packages/main/dist` 目录，将其部署到你的服务器即可。

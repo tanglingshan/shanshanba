@@ -50,22 +50,28 @@ frontend/
 
 ## ⚡ Quick Start
 
-### Run from Source
+### Prerequisites
 
 Before starting the web frontend service, please ensure the following environment is ready:
 - [Node.js](https://nodejs.org) >= v20
+- [pnpm](https://pnpm.io) >= 9.0 (Package Manager)
 
-
-First, install the required dependencies in the root directory:
-
+**📦 Install pnpm:**
 ```bash
-npm install rimraf copyfiles cross-env --save-dev
+npm install -g pnpm
+# or
+corepack enable
+corepack prepare pnpm@latest --activate
 ```
 
-Then, install all project dependencies:
+> **⚠️ Important:** This project uses **pnpm** as the package manager. Please do not use npm or yarn to avoid dependency conflicts.
+
+### Run from Source
+
+First, install all project dependencies:
 
 ```bash
-npm run re-install
+pnpm install
 ```
 
 Then, configure environment variables. Create a file named `.env` in the current directory and copy contents from `.env.example`. Modify these environment variable values according to your needs:
@@ -99,7 +105,8 @@ DEFAULT_PASSWORD=123456
 Finally, run the development server:
 
 ```bash
-npm run dev
+cd ../..
+pnpm run dev
 ```
 
 Open [http://localhost:8000](http://localhost:8000) in your browser to view the result.
@@ -110,7 +117,7 @@ You can start editing files in the `main/src` folder. The page will automaticall
 
 ```bash
 # If backend is java
-npm run build:subtree:java
+pnpm run build:subtree:java
 ```
 
 After the command completes, it will generate a `./packages/main/dist` directory, which you can then deploy to your server.

@@ -18,9 +18,9 @@ This package hosts the unified frontend app. The legacy `frontend` codebase has 
 
 ## Development
 ```bash
-cd frontend_studio
-npm install
-npm run dev -w packages/main
+cd frontend
+pnpm install
+pnpm run dev
 ```
 
 App will be served at http://localhost:8000 (or the port chosen by Umi).
