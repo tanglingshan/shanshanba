@@ -68,7 +68,10 @@ public class LLMNodeSection implements NodeSection<LLMNodeData> {
 						        return switch (type) {
 						            case USER -> new UserMessage(text);
 						            case SYSTEM -> new SystemMessage(text);
-						            case TOOL -> throw new UnsupportedOperationException("Tool message not supported");
+					            // Tool templates do not carry a tool-call id/name in the workflow DSL.
+					            // Preserve their content as an explicit text message so generated workflows
+					            // remain executable instead of failing at runtime.
+					            case TOOL -> new UserMessage("Tool response: " + text);
 						            case ASSISTANT -> new AssistantMessage(text);
 						        };
 						    }
