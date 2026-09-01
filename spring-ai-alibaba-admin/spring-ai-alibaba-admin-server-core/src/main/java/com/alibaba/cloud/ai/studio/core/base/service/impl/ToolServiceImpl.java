@@ -65,12 +65,13 @@ public class ToolServiceImpl extends ServiceImpl<ToolMapper, ToolEntity> impleme
 	public ToolEntity updateTool(ToolEntity toolEntity) {
 		RequestContext requestContext = RequestContextHolder.getRequestContext();
 
-		ToolEntity existing = getById(toolEntity.getId());
+		ToolEntity existing = getToolById(toolEntity.getId());
 		if (existing == null) {
 			throw new IllegalArgumentException("Tool not found with id: " + toolEntity.getId());
 		}
 
 		// Update fields
+		toolEntity.setWorkspaceId(existing.getWorkspaceId());
 		toolEntity.setGmtModified(new Date());
 		toolEntity.setModifier(requestContext.getAccountId());
 
@@ -80,12 +81,16 @@ public class ToolServiceImpl extends ServiceImpl<ToolMapper, ToolEntity> impleme
 
 	@Override
 	public void deleteTool(Long id) {
-		removeById(id);
+		LambdaQueryWrapper<ToolEntity> queryWrapper = currentWorkspaceQuery();
+		queryWrapper.eq(ToolEntity::getId, id);
+		remove(queryWrapper);
 	}
 
 	@Override
 	public ToolEntity getToolById(Long id) {
-		return getById(id);
+		LambdaQueryWrapper<ToolEntity> queryWrapper = currentWorkspaceQuery();
+		queryWrapper.eq(ToolEntity::getId, id);
+		return getOne(queryWrapper);
 	}
 
 	@Override
@@ -122,7 +127,7 @@ public class ToolServiceImpl extends ServiceImpl<ToolMapper, ToolEntity> impleme
 
 	@Override
 	public void setToolEnabled(Long id, Boolean enabled) {
-		ToolEntity tool = getById(id);
+		ToolEntity tool = getToolById(id);
 		if (tool == null) {
 			throw new IllegalArgumentException("Tool not found with id: " + id);
 		}
@@ -141,6 +146,14 @@ public class ToolServiceImpl extends ServiceImpl<ToolMapper, ToolEntity> impleme
 		queryWrapper.eq(ToolEntity::getPluginId, pluginId);
 		queryWrapper.orderByDesc(ToolEntity::getGmtModified);
 		return list(queryWrapper);
+	}
+
+	private LambdaQueryWrapper<ToolEntity> currentWorkspaceQuery() {
+		RequestContext context = RequestContextHolder.getRequestContext();
+		if (context == null || StringUtils.isBlank(context.getWorkspaceId())) {
+			throw new IllegalStateException("Workspace context is required");
+		}
+		return new LambdaQueryWrapper<ToolEntity>().eq(ToolEntity::getWorkspaceId, context.getWorkspaceId());
 	}
 
 }

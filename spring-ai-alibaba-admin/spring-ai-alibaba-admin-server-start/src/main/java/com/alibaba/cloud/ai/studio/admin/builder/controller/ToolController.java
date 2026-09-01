@@ -18,6 +18,8 @@ package com.alibaba.cloud.ai.studio.admin.builder.controller;
 
 import com.alibaba.cloud.ai.studio.core.base.entity.ToolEntity;
 import com.alibaba.cloud.ai.studio.core.base.service.ToolService;
+import com.alibaba.cloud.ai.studio.core.context.RequestContextHolder;
+import com.alibaba.cloud.ai.studio.runtime.domain.RequestContext;
 import com.alibaba.cloud.ai.studio.runtime.domain.PagingList;
 import com.alibaba.cloud.ai.studio.runtime.domain.Result;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -82,7 +84,7 @@ public class ToolController {
 	 */
 	@GetMapping
 	public Result<List<ToolEntity>> getTools() {
-		String workspaceId = "default"; // TODO: Get from context
+		String workspaceId = currentWorkspaceId();
 		List<ToolEntity> tools = toolService.getToolsByWorkspaceId(workspaceId);
 		return Result.success(tools);
 	}
@@ -93,7 +95,7 @@ public class ToolController {
 	@GetMapping("/page")
 	public Result<PagingList<ToolEntity>> getToolsByPage(@RequestParam(defaultValue = "1") long current,
 			@RequestParam(defaultValue = "10") long size) {
-		String workspaceId = "default"; // TODO: Get from context
+		String workspaceId = currentWorkspaceId();
 		Page<ToolEntity> page = new Page<>(current, size);
 		PagingList<ToolEntity> result = toolService.getToolsByWorkspaceId(workspaceId, page);
 		return Result.success(result);
@@ -104,7 +106,7 @@ public class ToolController {
 	 */
 	@GetMapping("/search")
 	public Result<List<ToolEntity>> searchTools(@RequestParam String name) {
-		String workspaceId = "default"; // TODO: Get from context
+		String workspaceId = currentWorkspaceId();
 		List<ToolEntity> tools = toolService.getToolsByName(name, workspaceId);
 		return Result.success(tools);
 	}
@@ -114,7 +116,7 @@ public class ToolController {
 	 */
 	@GetMapping("/plugin/{pluginId}")
 	public Result<List<ToolEntity>> getToolsByPlugin(@PathVariable String pluginId) {
-		String workspaceId = "default"; // TODO: Get from context
+		String workspaceId = currentWorkspaceId();
 		List<ToolEntity> tools = toolService.getToolsByPluginId(pluginId, workspaceId);
 		return Result.success(tools);
 	}
@@ -126,6 +128,14 @@ public class ToolController {
 	public Result<Void> setToolEnabled(@PathVariable Long id, @RequestParam Boolean enabled) {
 		toolService.setToolEnabled(id, enabled);
 		return Result.success(null);
+	}
+
+	private String currentWorkspaceId() {
+		RequestContext context = RequestContextHolder.getRequestContext();
+		if (context == null || context.getWorkspaceId() == null || context.getWorkspaceId().isBlank()) {
+			return "default";
+		}
+		return context.getWorkspaceId();
 	}
 
 }
