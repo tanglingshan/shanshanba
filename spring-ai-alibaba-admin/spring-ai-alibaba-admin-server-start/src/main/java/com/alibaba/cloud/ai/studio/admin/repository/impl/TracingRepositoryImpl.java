@@ -160,7 +160,7 @@ public class TracingRepositoryImpl implements TracingRepository {
             .endTime(endTimeStr)
             .status(convertStatusCode(getString(metadata, "statusCode")))
             // FIXME: 暂时设为0，后续可根据需要计算
-            .errorCount(0)
+            .errorCount("ERROR".equalsIgnoreCase(convertStatusCode(getString(metadata, "statusCode"))) ? 1 : 0)
             .attributes((Map<String, Object>) source.get("attributes"))
             .resources((Map<String, Object>) source.get("resources"))
             .spanLinks(convertSpanLinks((List<Map<String, Object>>) source.get("spanLinks")))
