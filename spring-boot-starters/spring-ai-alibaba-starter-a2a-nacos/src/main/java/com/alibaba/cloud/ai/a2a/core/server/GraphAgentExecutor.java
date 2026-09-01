@@ -17,6 +17,7 @@
 package com.alibaba.cloud.ai.a2a.core.server;
 
 import com.alibaba.cloud.ai.graph.NodeOutput;
+import com.alibaba.cloud.ai.graph.OverAllState;
 import com.alibaba.cloud.ai.graph.RunnableConfig;
 import com.alibaba.cloud.ai.graph.agent.Agent;
 import com.alibaba.cloud.ai.graph.agent.BaseAgent;
@@ -29,10 +30,11 @@ import org.springframework.util.StringUtils;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import com.alibaba.fastjson.JSON;
@@ -53,6 +55,8 @@ import io.a2a.spec.TextPart;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.core.Disposable;
+import reactor.core.Disposables;
 
 public class GraphAgentExecutor implements AgentExecutor {
 
@@ -63,6 +67,9 @@ public class GraphAgentExecutor implements AgentExecutor {
 	public static final String STREAMING_METADATA_KEY = "isStreaming";
 
 	private final Agent executeAgent;
+
+	/** Active streaming subscriptions keyed by A2A task id. */
+	private final Map<String, Disposable> activeStreams = new ConcurrentHashMap<>();
 
 	public GraphAgentExecutor(Agent executeAgent) {
 		this.executeAgent = executeAgent;
@@ -111,6 +118,16 @@ public class GraphAgentExecutor implements AgentExecutor {
 
 	@Override
 	public void cancel(RequestContext context, EventQueue eventQueue) throws JSONRPCError {
+		Task task = context.getTask();
+		if (task == null) {
+			return;
+		}
+		Disposable subscription = activeStreams.remove(task.getId());
+		if (subscription != null) {
+			subscription.dispose();
+		}
+		new TaskUpdater(context, eventQueue).cancel(A2A.toAgentMessage("Task canceled by client."));
+		LOGGER.info("Canceled A2A task {}", task.getId());
 	}
 
 	private boolean isStreamRequest(RequestContext context) {
@@ -158,22 +175,27 @@ public class GraphAgentExecutor implements AgentExecutor {
 			task = newTask(context.getMessage());
 			eventQueue.enqueueEvent(task);
 		}
+		final Task executionTask = task;
 		TaskUpdater taskUpdater = new TaskUpdater(context, eventQueue);
 		taskUpdater.submit();
-		generator.subscribe(new ReactAgentNodeOutputConsumer(taskUpdater), throwable -> {
+		Disposable.Swap subscription = Disposables.swap();
+		activeStreams.put(executionTask.getId(), subscription);
+		Disposable actualSubscription = generator.subscribe(new ReactAgentNodeOutputConsumer(taskUpdater), throwable -> {
+			activeStreams.remove(executionTask.getId());
 			LOGGER.error("Agent execution failed", throwable);
 			taskUpdater.fail(A2A.toAgentMessage(throwable.getMessage()));
-		}, taskUpdater::complete);
-		waitTaskCompleted(task);
+		}, () -> {
+			activeStreams.remove(executionTask.getId());
+			taskUpdater.complete();
+		});
+		subscription.update(actualSubscription);
 	}
 
 	private void executeForNonStreamTask(String inputMessage, RequestContext context, EventQueue eventQueue)
 			throws GraphStateException, GraphRunnerException {
 		RunnableConfig runnableConfig = getRunnableConfig(context);
 		var result = executeAgent.invoke(inputMessage, runnableConfig);
-		// FIXME: currently only support ReactAgent and A2aRemoteAgent as the root agent
-		String outputText = result.get().data().containsKey(((BaseAgent)executeAgent).getOutputKey())
-				? String.valueOf(result.get().data().get(((BaseAgent)executeAgent).getOutputKey())) : "No output key in result.";
+		String outputText = extractOutputText(result);
 
 		Task task = context.getTask();
 		if (task == null) {
@@ -196,15 +218,20 @@ public class GraphAgentExecutor implements AgentExecutor {
 		}
 	}
 
-	private void waitTaskCompleted(Task task) {
-		while (!task.getStatus().state().equals(TaskState.COMPLETED)
-				&& !task.getStatus().state().equals(TaskState.CANCELED)) {
-			try {
-				TimeUnit.SECONDS.sleep(1);
-			}
-			catch (InterruptedException ignored) {
+	private String extractOutputText(Optional<OverAllState> result) {
+		if (result.isEmpty() || result.get().data().isEmpty()) {
+			return "No output in result.";
+		}
+		Map<String, Object> data = result.get().data();
+		if (executeAgent instanceof BaseAgent baseAgent && data.containsKey(baseAgent.getOutputKey())) {
+			return String.valueOf(data.get(baseAgent.getOutputKey()));
+		}
+		for (String key : List.of("output", "result", "answer")) {
+			if (data.containsKey(key)) {
+				return String.valueOf(data.get(key));
 			}
 		}
+		return JSON.toJSONString(data);
 	}
 
 	private static class ReactAgentNodeOutputConsumer implements Consumer<NodeOutput> {
